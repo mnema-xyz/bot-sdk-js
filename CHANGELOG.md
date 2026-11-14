@@ -3,6 +3,15 @@
 All notable changes to `@mnema-xyz/bot-sdk`. Versions follow
 [semver](https://semver.org).
 
+## 3.2.0 (2026-11-15)
+
+Tested with Mnema Talk 3.1.1 and newer.
+
+- Added `client.rest.downloadAttachment(id, options?)` to stream message attachments
+  without following redirects, with `maxBytes`, `timeoutMs`, and `signal` options.
+- Added typed `MaxBytesExceededError` and `NotFoundError`.
+- Added optional `size`, `content_type`, and `filename` fields to `Attachment`.
+
 ## 3.1.3 (2026-11-13)
 
 Tested with Mnema Talk 3.1.1 and newer.
