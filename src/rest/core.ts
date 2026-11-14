@@ -3,7 +3,7 @@
 import { API_BASE_PATH } from '../constants.ts'
 import { sleep, trimSlash, type Logger } from '../util.ts'
 import { VERSION } from '../version.ts'
-import { RestError } from './error.ts'
+import { MaxBytesExceededError, NotFoundError, RestError } from './error.ts'
 import { Bucket, WindowLimiter, bucketKey, isMessagePost } from './limits.ts'
 
 export interface RestOptions {
@@ -51,6 +51,19 @@ export interface RequestOptions {
   /** Sent as multipart/form-data. */
   form?: FormData
   signal?: AbortSignal
+}
+
+export interface DownloadOptions {
+  maxBytes?: number
+  signal?: AbortSignal
+  timeoutMs?: number
+}
+
+export interface DownloadedAttachment {
+  contentType: string
+  size?: number
+  filename?: string
+  stream: ReadableStream<Uint8Array>
 }
 
 const RETRYABLE_GET = new Set([502, 503, 504])
@@ -101,6 +114,43 @@ export class RestCore {
         continue
       }
       return (await this.parse(res, method, path)) as T
+    }
+  }
+
+  /** Streams a GET request, returning the raw response body as a ReadableStream without following redirects. */
+  async download(path: string, opts: DownloadOptions = {}): Promise<DownloadedAttachment> {
+    const method = 'GET'
+    const key = bucketKey(method, path)
+    const bucket = this.bucket(key)
+    for (let attempt = 0; ; attempt++) {
+      await this.acquire(bucket, opts.signal)
+      const timeout = AbortSignal.timeout(opts.timeoutMs ?? this.timeoutMs)
+      const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
+      const headers: Record<string, string> = {
+        Authorization: `Bot ${this.token}`,
+        'User-Agent': this.userAgent,
+      }
+      this.logger?.debug?.(`rest ${method} ${path}`)
+      const res = await this.fetchImpl(this.url(path, undefined), {
+        method,
+        headers,
+        signal,
+        redirect: 'manual',
+      })
+      if (res.status === 429) {
+        const wait = await this.noteRateLimit(res, bucket, { method, path, key, attempt, maxRetries: this.maxRetries })
+        if (wait.willRetry) continue
+        throw new RestError({ status: 429, method, path, body: wait.body, retryAfter: wait.retryAfter, global: wait.global })
+      }
+      if (res.status === 404) {
+        const body = await readBody(res)
+        throw new NotFoundError({ status: 404, method, path, body })
+      }
+      if (!res.ok) {
+        const body = await readBody(res)
+        throw new RestError({ status: res.status, method, path, body })
+      }
+      return processAttachmentStream(res, opts.maxBytes)
     }
   }
 
@@ -193,8 +243,62 @@ export class RestCore {
 
   private async parse(res: Response, method: string, path: string): Promise<unknown> {
     const body = await readBody(res)
-    if (!res.ok) throw new RestError({ status: res.status, method, path, body })
+    if (!res.ok) {
+      if (res.status === 404) throw new NotFoundError({ status: 404, method, path, body })
+      throw new RestError({ status: res.status, method, path, body })
+    }
     return body
+  }
+}
+
+function parseFilename(disposition: string | null): string | undefined {
+  if (!disposition) return undefined
+  const starMatch = /filename\*\s*=\s*UTF-8''([^;\s]+)/i.exec(disposition)
+  if (starMatch?.[1]) {
+    try {
+      return decodeURIComponent(starMatch[1])
+    } catch {
+      return starMatch[1]
+    }
+  }
+  const match = /filename\s*=\s*(?:"([^"]+)"|([^;\s]+))/i.exec(disposition)
+  return match?.[1] ?? match?.[2] ?? undefined
+}
+
+function processAttachmentStream(res: Response, maxBytes?: number): DownloadedAttachment {
+  const contentType = res.headers.get('content-type') ?? 'application/octet-stream'
+  const cl = res.headers.get('content-length')
+  const size = cl !== null && !Number.isNaN(Number.parseInt(cl, 10)) ? Number.parseInt(cl, 10) : undefined
+  const filename = parseFilename(res.headers.get('content-disposition'))
+
+  if (maxBytes !== undefined && size !== undefined && size > maxBytes) {
+    void res.body?.cancel()
+    throw new MaxBytesExceededError(maxBytes, size)
+  }
+
+  const rawStream = res.body ?? new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.close()
+    },
+  })
+
+  let totalBytes = 0
+  const transform = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      totalBytes += chunk.byteLength
+      if (maxBytes !== undefined && totalBytes > maxBytes) {
+        controller.error(new MaxBytesExceededError(maxBytes, totalBytes))
+        return
+      }
+      controller.enqueue(chunk)
+    },
+  })
+
+  return {
+    contentType,
+    size,
+    filename,
+    stream: rawStream.pipeThrough(transform),
   }
 }
 

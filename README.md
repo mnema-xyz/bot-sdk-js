@@ -141,6 +141,7 @@ on `error`.
 | `deleteMessage(channelId, messageId)` | `DELETE /channels/{id}/messages/{id}` |
 | `addReaction(channelId, messageId, emoji)`, `removeReaction(...)` | `PUT`, `DELETE .../reactions/{emoji}/@me` |
 | `uploadFile(channelId, { file: Blob \| Buffer, name, content?, contentType?, allowed_mentions?, parent_id?, reply_to_id? })` | `POST /channels/{id}/upload` |
+| `downloadAttachment(id, { maxBytes?, signal?, timeoutMs? })` | `GET /media/{id}` |
 | `listMembers()`, `getMember(userId)` | `GET /members`, `GET /members/{id}` |
 | `listCommands()`, `setCommands(list)`, `createCommand(cmd)`, `deleteCommand(id)` | `/commands` |
 | `request(method, path, { query, body, form, signal })` | any route under `/api/bot/v1` |
@@ -149,6 +150,21 @@ on `error`.
 answer throws a `RestError` with `status`, `code` (Discord's JSON code, for
 example `10003` unknown channel, `50013` missing permissions), `message` (the
 server's) and `body`.
+
+### Downloading attachments
+
+```ts
+const { contentType, size, filename, stream } = await client.rest.downloadAttachment(attachment.id, {
+  maxBytes: 10 * 1024 * 1024,
+})
+```
+
+`downloadAttachment` streams a message attachment by its id without following redirects:
+- Returns `{ contentType, size, filename, stream }`, where `stream` is a `ReadableStream<Uint8Array>`.
+- `maxBytes`: aborts and throws `MaxBytesExceededError` if the server's `Content-Length` header or the bytes read while streaming exceed the limit.
+- `timeoutMs`: request timeout in milliseconds (defaults to `rest.timeoutMs`, 15 s).
+- `signal`: optional `AbortSignal` to cancel the download.
+- Throws `NotFoundError` (status 404) when the attachment does not exist, the message was deleted/expired, or the bot lacks permission to view the channel/DM.
 
 ### Slash commands
 

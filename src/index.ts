@@ -29,9 +29,9 @@ export { Client, gatewayUrlFor, type ClientEvents, type ClientOptions } from './
 export { CommandManager } from './client/commands.ts'
 export { Interaction, type EditData, type ReplyData } from './client/interaction.ts'
 
-export { RestClient } from './rest/client.ts'
-export { RestError } from './rest/error.ts'
-export type { RateLimitInfo, RequestOptions, RestOptions } from './rest/core.ts'
+export { RestClient, type DownloadAttachmentOptions, type DownloadedAttachment } from './rest/client.ts'
+export { MaxBytesExceededError, NotFoundError, RestError } from './rest/error.ts'
+export type { DownloadOptions, RateLimitInfo, RequestOptions, RestOptions } from './rest/core.ts'
 
 export { Gateway, type GatewayCloseInfo, type GatewayEvents, type GatewayOptions } from './gateway/gateway.ts'
 export { GatewayError, closeAction, type BackoffOptions, type CloseAction } from './gateway/policy.ts'
