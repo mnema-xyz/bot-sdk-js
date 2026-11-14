@@ -13,7 +13,10 @@ import type {
   Message,
   UploadFileData,
 } from '../types/messages.ts'
-import { RestCore, type RequestOptions, type RestOptions } from './core.ts'
+import { RestCore, type DownloadOptions, type DownloadedAttachment, type RequestOptions, type RestOptions } from './core.ts'
+
+export type DownloadAttachmentOptions = DownloadOptions
+export type { DownloadedAttachment }
 
 const seg = encodeURIComponent
 
@@ -97,6 +100,15 @@ export class RestClient {
     if (data.reply_to_id !== undefined) form.append('reply_to_id', data.reply_to_id)
     form.append('file', blob, data.name)
     return this.core.request('POST', `/channels/${seg(channelId)}/upload`, { form })
+  }
+
+  /**
+   * Streams a message attachment by its media id without following redirects.
+   * Throws NotFoundError if missing or not accessible to the bot.
+   * Throws MaxBytesExceededError if maxBytes is exceeded.
+   */
+  downloadAttachment(id: string, options?: DownloadAttachmentOptions): Promise<DownloadedAttachment> {
+    return this.core.download(`/media/${seg(id)}`, options)
   }
 
   /** Needs the GUILD_MEMBERS intent allowed. */

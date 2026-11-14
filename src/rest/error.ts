@@ -37,3 +37,29 @@ export class RestError extends Error {
     this.global = init.global
   }
 }
+
+/**
+ * A 404 answer of the REST API (e.g. unknown or inaccessible attachment, message, channel).
+ */
+export class NotFoundError extends RestError {
+  override name = 'NotFoundError'
+}
+
+/**
+ * Thrown when an attachment exceeds the configured maxBytes limit, either
+ * indicated by the Content-Length header or while streaming chunks.
+ */
+export class MaxBytesExceededError extends Error {
+  override name = 'MaxBytesExceededError'
+  readonly maxBytes: number
+  readonly bytes?: number
+
+  constructor(maxBytes: number, bytes?: number) {
+    const message = bytes !== undefined
+      ? `Attachment exceeds maximum size of ${maxBytes} bytes (got ${bytes})`
+      : `Attachment exceeds maximum size of ${maxBytes} bytes`
+    super(message)
+    this.maxBytes = maxBytes
+    this.bytes = bytes
+  }
+}

@@ -41,6 +41,9 @@ export interface Attachment {
   original_filename: string
   size_bytes: number
   is_deleted: boolean
+  filename?: string
+  content_type?: string
+  size?: number
 }
 
 export interface ReactionSummary {
