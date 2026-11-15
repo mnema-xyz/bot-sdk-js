@@ -3,6 +3,16 @@
 All notable changes to `@mnema-xyz/bot-sdk`. Versions follow
 [semver](https://semver.org).
 
+## 3.3.0 (2026-11-15)
+
+Tested with Mnema Talk 3.2.0 and newer.
+
+- Added `default_member_permissions` to `CommandInput` and `Command` to restrict
+  slash command visibility and execution by member permissions.
+- Added `permissions` to `InteractionMember` carrying the invoking member's channel permissions.
+- Added `Permissions` constants and `hasPermission` helper (standalone and on `Interaction`).
+- Documented that Mnema's permission bits are distinct from Discord's bit values.
+
 ## 3.2.0 (2026-11-15)
 
 Tested with Mnema Talk 3.1.1 and newer.
