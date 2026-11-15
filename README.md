@@ -172,6 +172,8 @@ const { contentType, size, filename, stream } = await client.rest.downloadAttach
 await client.commands.set([            // PUT /commands: replaces them all
   { name: 'roll', description: 'Rolls a die',
     options: [{ name: 'sides', description: 'How many sides', type: OptionType.Integer, required: true }] },
+  { name: 'ban', description: 'Bans a member',
+    default_member_permissions: ['ban_members'] }, // or Permissions.BanMembers / "524288"
 ])
 await client.commands.create(cmd)      // POST: adds or updates by name
 await client.commands.list()
@@ -182,20 +184,32 @@ Names are 1 to 32 lowercase letters, digits, `-` or `_`; at most 50 commands,
 10 options each, required options first, string options may list up to 25
 `choices`. The SDK checks this before sending.
 
+#### Command permissions (`default_member_permissions`)
+
+A command can restrict who can see and run it in a channel with `default_member_permissions`:
+- `null` or omitted: available to everyone who can use commands in the channel.
+- `"0"` or `[]`: available to nobody except the Owner and members with Administrator.
+- An array of permission keys (e.g. `['ban_members']`), a decimal bitfield string (e.g. `"524288"`), or `Permissions` bitwise flags (e.g. `Permissions.BanMembers`).
+
+> [!WARNING]
+> Mnema's permission bit values are **not** Discord's bit values (e.g. `discord.js`'s `PermissionFlagsBits`). Do not reuse Discord's permission constants; use `Permissions` from this SDK, pass permission keys (e.g. `['administrator']`), or compute them from Mnema's catalogue.
+
 ## Interactions
 
 `interactionCreate` gives an `Interaction`:
 
 | Field | |
 |---|---|
-| `id`, `token`, `type` (2 command, 3 component, 5 modal submit), `channelId`, `user` | always |
+| `id`, `token`, `type` (2 command, 3 component, 5 modal submit), `channelId`, `user`, `member` | always |
 | `commandName`, `commandId`, `options` (`Map<string, string \| number \| boolean>`) | commands |
 | `customId`, `componentType`, `values` (`string[]`), `resolved`, `message` | components |
 | `customId`, `fields` (`Map<string, string>`), `message` (when opened from a component) | modal submits |
 | `raw` | the payload as it arrived |
 
 `isCommand()`, `isComponent()`, `isButton()`, `isSelect()`, `isModalSubmit()`
-tell them apart. Answer within 15 minutes:
+tell them apart. `i.member.permissions` holds the member's channel permissions
+as a decimal bitfield string (e.g. `"6"`). `i.hasPermission(Permissions.ManageMessages)`
+checks whether the member has that permission (or Administrator). Answer within 15 minutes:
 
 | Method | Callback | For |
 |---|---|---|

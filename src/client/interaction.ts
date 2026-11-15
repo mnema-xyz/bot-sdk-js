@@ -1,11 +1,12 @@
 // An INTERACTION_CREATE (a slash command, a click or a modal submit) and the
 // ways to answer it (doc/bots.md, "Interactions in detail").
-import { CallbackType, InteractionType, MessageFlags } from '../constants.ts'
+import { CallbackType, hasPermission, InteractionType, MessageFlags } from '../constants.ts'
 import { validateModal } from '../builders/validate.ts'
 import type { RestClient } from '../rest/client.ts'
 import type { InteractionEditData, InteractionResponseData } from '../types/commands.ts'
 import type { ModalData } from '../types/components.ts'
 import type {
+  InteractionMember,
   InteractionMessage,
   InteractionPayload,
   InteractionUser,
@@ -47,6 +48,8 @@ export class Interaction {
   readonly applicationId: string
   /** The member who ran the command, clicked or submitted; the server sends it with every interaction. */
   readonly user: InteractionUser
+  /** The member who triggered the interaction, including channel permissions. */
+  readonly member: InteractionMember
   /** The message a component is on (also for a modal opened from a component). */
   readonly message: InteractionMessage | undefined
   /** The command's name (type 2), else ''. */
@@ -87,6 +90,7 @@ export class Interaction {
     const user = payload.member?.user
     if (!user) throw new TypeError('an interaction without member.user')
     this.user = user
+    this.member = payload.member
     this.message = payload.message
     this.commandName = d.name ?? ''
     this.commandId = d.id
@@ -116,6 +120,15 @@ export class Interaction {
 
   isModalSubmit(): boolean {
     return this.type === InteractionType.ModalSubmit
+  }
+
+  /**
+   * Checks whether the member who triggered the interaction has a permission
+   * in the channel (or has Administrator). Returns false if permissions are absent
+   * (e.g. from an older server).
+   */
+  hasPermission(permission: bigint | number): boolean {
+    return hasPermission(this.member?.permissions, permission)
   }
 
   /** Posts the response message (callback 4); `ephemeral` shows it to the member only. */

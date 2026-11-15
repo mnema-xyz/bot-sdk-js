@@ -13,11 +13,63 @@ export interface CommandOption {
   choices?: string[]
 }
 
+export type PermissionKey =
+  | 'administrator'
+  | 'view_channel'
+  | 'send_messages'
+  | 'attach_files'
+  | 'add_reactions'
+  | 'manage_messages'
+  | 'mention_everyone'
+  | 'connect'
+  | 'speak'
+  | 'video'
+  | 'disconnect_members'
+  | 'manage_channels'
+  | 'manage_roles'
+  | 'create_invites'
+  | 'manage_webhooks'
+  | 'manage_members'
+  | 'manage_bots'
+  | 'view_audit_log'
+  | 'timeout_members'
+  | 'ban_members'
+  | 'manage_emoji'
+  | 'manage_reports'
+  | 'send_direct_messages'
+  | 'kick_members'
+  | 'manage_stage'
+  | 'manage_events'
+  | 'bypass_new_member_limits'
+  | 'edit_wiki'
+  | 'manage_wiki'
+  | 'view_wiki'
+  | 'create_member_invites'
+
+export type DefaultMemberPermissionsInput =
+  | string
+  | bigint
+  | number
+  | PermissionKey[]
+  | string[]
+  | null
+
 /** What a bot registers (PUT and POST /commands). */
 export interface CommandInput {
   name: string
   description: string
   options?: CommandOption[]
+  /**
+   * Permissions a member needs in the channel to see and run the command.
+   * A decimal bitfield string (e.g. "6", "1"), a bigint/number, or an array
+   * of permission keys (e.g. ["ban_members"]).
+   * `null` or omitted: available to everyone who can use commands in the channel.
+   * `"0"` or `[]`: available to nobody except Administrator/Owner.
+   *
+   * Note: Mnema's permission bits are NOT Discord's bit values! Use `Permissions`
+   * from this SDK or permission keys, never Discord's PermissionFlagsBits.
+   */
+  default_member_permissions?: DefaultMemberPermissionsInput
 }
 
 /** A registered command (GET /commands). */
@@ -29,6 +81,11 @@ export interface Command {
   options: CommandOption[]
   disabled: boolean
   created_at: string
+  /**
+   * The command's required member permissions as a decimal bitfield string,
+   * e.g. "6", or `null` when available to everyone.
+   */
+  default_member_permissions?: string | null
 }
 
 /** The `data` of callback 4 and the body of a follow-up: a message to post. */

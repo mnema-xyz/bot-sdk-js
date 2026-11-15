@@ -163,4 +163,13 @@ describe('commands', () => {
     assert.throws(() => validateCommands(many), /at most 50/)
     assert.throws(() => validateCommands([{ name: 'a', description: 'd' }, { name: 'a', description: 'd' }]), /twice/)
   })
+
+  test('validates default_member_permissions type', () => {
+    assert.doesNotThrow(() => validateCommand({ name: 'p', description: 'd', default_member_permissions: '6' }))
+    assert.doesNotThrow(() => validateCommand({ name: 'p', description: 'd', default_member_permissions: 6n }))
+    assert.doesNotThrow(() => validateCommand({ name: 'p', description: 'd', default_member_permissions: 6 }))
+    assert.doesNotThrow(() => validateCommand({ name: 'p', description: 'd', default_member_permissions: ['ban_members'] }))
+    assert.doesNotThrow(() => validateCommand({ name: 'p', description: 'd', default_member_permissions: null }))
+    assert.throws(() => validateCommand({ name: 'p', description: 'd', default_member_permissions: true as never }), /default_member_permissions/)
+  })
 })

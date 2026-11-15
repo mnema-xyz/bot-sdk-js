@@ -113,6 +113,15 @@ export type InteractionMessage = Partial<Message> & {
   flags?: number
 }
 
+export interface InteractionMember {
+  user: InteractionUser
+  /**
+   * The member's permissions in the channel as a decimal bitfield string,
+   * e.g. "6" or "1". Absent on servers before 3.3.
+   */
+  permissions?: string
+}
+
 /** The `d` of an INTERACTION_CREATE dispatch. */
 export interface InteractionPayload {
   id: string
@@ -121,6 +130,6 @@ export interface InteractionPayload {
   channel_id: string
   application_id: string
   data: InteractionData
-  member: { user: InteractionUser }
+  member: InteractionMember
   message?: InteractionMessage
 }

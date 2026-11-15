@@ -1,7 +1,7 @@
 // What each answer of an interaction sends: exactly what its route accepts.
 import assert from 'node:assert/strict'
 import { afterEach, describe, test } from 'node:test'
-import { Interaction, RestClient, type InteractionPayload } from '../src/index.ts'
+import { hasPermission, Interaction, Permissions, RestClient, type InteractionPayload } from '../src/index.ts'
 import { sendJson, startHttpServer, type TestHttpServer } from './helpers/httpServer.ts'
 
 let server: TestHttpServer | undefined
@@ -44,5 +44,37 @@ describe('interaction answers', () => {
     const rest = new RestClient({ baseUrl: 'http://127.0.0.1:9', token: 'mnb_t' })
     assert.equal(new Interaction(payload, rest).user.username, 'max')
     assert.throws(() => new Interaction({ ...payload, member: undefined } as never, rest), TypeError)
+  })
+
+  test('interaction exposes member permissions and hasPermission helper', () => {
+    const rest = new RestClient({ baseUrl: 'http://127.0.0.1:9', token: 'mnb_t' })
+    const i = new Interaction({ ...payload, member: { user: payload.member.user, permissions: '6' } }, rest)
+    assert.equal(i.member.permissions, '6')
+    assert.equal(i.hasPermission(Permissions.ViewChannel), true)
+    assert.equal(i.hasPermission(Permissions.SendMessages), true)
+    assert.equal(i.hasPermission(Permissions.Administrator), false)
+    assert.equal(i.hasPermission(Permissions.BanMembers), false)
+
+    // Administrator bit grants everything
+    const admin = new Interaction({ ...payload, member: { user: payload.member.user, permissions: '1' } }, rest)
+    assert.equal(admin.hasPermission(Permissions.BanMembers), true)
+    assert.equal(admin.hasPermission(Permissions.Administrator), true)
+
+    // Absent permissions (e.g. from older server) returns false
+    const older = new Interaction({ ...payload, member: { user: payload.member.user } }, rest)
+    assert.equal(older.member.permissions, undefined)
+    assert.equal(older.hasPermission(Permissions.ViewChannel), false)
+  })
+
+  test('hasPermission standalone function handles strings, bigints, numbers, and null/undefined', () => {
+    assert.equal(hasPermission('6', Permissions.ViewChannel), true)
+    assert.equal(hasPermission('6', Permissions.SendMessages), true)
+    assert.equal(hasPermission('6', Permissions.BanMembers), false)
+    assert.equal(hasPermission('1', Permissions.BanMembers), true)
+    assert.equal(hasPermission(1n, Permissions.BanMembers), true)
+    assert.equal(hasPermission(6, Permissions.ViewChannel), true)
+    assert.equal(hasPermission(undefined, Permissions.ViewChannel), false)
+    assert.equal(hasPermission(null, Permissions.ViewChannel), false)
+    assert.equal(hasPermission('invalid', Permissions.ViewChannel), false)
   })
 })

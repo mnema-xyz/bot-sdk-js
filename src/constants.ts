@@ -123,3 +123,65 @@ export const GatewayCloseCode = {
 
 /** The REST API's base path. */
 export const API_BASE_PATH = '/api/bot/v1'
+
+/**
+ * Mnema Talk's permission bits.
+ *
+ * WARNING: Mnema's permission bit values are NOT Discord's bit values!
+ * Do not reuse Discord's permission constants or PermissionFlagsBits.
+ * Compute bit values from Mnema's catalogue or pass an array of permission keys.
+ */
+export const Permissions = {
+  Administrator: 1n,
+  ViewChannel: 2n,
+  SendMessages: 4n,
+  AttachFiles: 8n,
+  AddReactions: 16n,
+  ManageMessages: 32n,
+  MentionEveryone: 64n,
+  Connect: 128n,
+  Speak: 256n,
+  Video: 512n,
+  DisconnectMembers: 1024n,
+  ManageChannels: 2048n,
+  ManageRoles: 4096n,
+  CreateInvites: 8192n,
+  ManageWebhooks: 16384n,
+  ManageMembers: 32768n,
+  ManageBots: 65536n,
+  ViewAuditLog: 131072n,
+  TimeoutMembers: 262144n,
+  BanMembers: 524288n,
+  ManageEmoji: 1048576n,
+  ManageReports: 2097152n,
+  SendDirectMessages: 4194304n,
+  KickMembers: 8388608n,
+  ManageStage: 16777216n,
+  ManageEvents: 33554432n,
+  BypassNewMemberLimits: 67108864n,
+  EditWiki: 134217728n,
+  ManageWiki: 268435456n,
+  ViewWiki: 536870912n,
+  CreateMemberInvites: 1073741824n,
+} as const
+export type PermissionBit = (typeof Permissions)[keyof typeof Permissions]
+
+/**
+ * Checks whether a member permissions bitfield (decimal string, bigint or number)
+ * includes a permission. Returns true if the member has the specific permission or
+ * Administrator (which grants all permissions).
+ */
+export function hasPermission(
+  permissions: string | bigint | number | undefined | null,
+  permission: bigint | number,
+): boolean {
+  if (permissions === undefined || permissions === null || permissions === '') return false
+  try {
+    const bits = typeof permissions === 'bigint' ? permissions : BigInt(permissions)
+    const target = BigInt(permission)
+    return (bits & Permissions.Administrator) === Permissions.Administrator || (bits & target) === target
+  } catch {
+    return false
+  }
+}
+

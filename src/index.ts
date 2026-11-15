@@ -11,7 +11,9 @@ export {
   InteractionType,
   MessageFlags,
   OptionType,
+  Permissions,
   TextInputStyle,
+  hasPermission,
 } from './constants.ts'
 export type {
   ActivityTypeValue,
@@ -22,6 +24,7 @@ export type {
   IntentName,
   InteractionTypeValue,
   OptionTypeValue,
+  PermissionBit,
   TextInputStyleValue,
 } from './constants.ts'
 
