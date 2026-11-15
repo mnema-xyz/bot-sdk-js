@@ -85,6 +85,25 @@ describe('request shapes', () => {
     assert.equal(`${del!.method} ${del!.url}`, 'DELETE /api/bot/v1/interactions/i1/tok/messages/@original')
   })
 
+  test('serializes default_member_permissions correctly in commands', async () => {
+    const rest = await client(ok)
+    await rest.setCommands([
+      { name: 'kick', description: 'Kicks', default_member_permissions: ['kick_members'] },
+      { name: 'ban', description: 'Bans', default_member_permissions: 524288n },
+      { name: 'timeout', description: 'Timeouts', default_member_permissions: '262144' },
+      { name: 'admin', description: 'Admin only', default_member_permissions: 1 },
+      { name: 'free', description: 'Free for all', default_member_permissions: null },
+    ])
+    const [put] = server!.requests
+    assert.deepEqual(put!.json(), [
+      { name: 'kick', description: 'Kicks', options: [], default_member_permissions: ['kick_members'] },
+      { name: 'ban', description: 'Bans', options: [], default_member_permissions: '524288' },
+      { name: 'timeout', description: 'Timeouts', options: [], default_member_permissions: '262144' },
+      { name: 'admin', description: 'Admin only', options: [], default_member_permissions: '1' },
+      { name: 'free', description: 'Free for all', options: [], default_member_permissions: null },
+    ])
+  })
+
   test('uploads a file as multipart with its name and caption', async () => {
     const rest = await client(ok)
     await rest.uploadFile('c', { file: Buffer.from('hello'), name: 'note.txt', contentType: 'text/plain', content: 'see', reply_to_id: 'm1' })

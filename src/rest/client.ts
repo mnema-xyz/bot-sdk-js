@@ -168,5 +168,9 @@ function interactionPath(id: string, token: string): string {
 }
 
 function withOptions(c: CommandInput): CommandInput {
-  return { ...c, options: c.options ?? [] }
+  const out: CommandInput = { ...c, options: c.options ?? [] }
+  if (typeof c.default_member_permissions === 'bigint' || typeof c.default_member_permissions === 'number') {
+    out.default_member_permissions = String(c.default_member_permissions)
+  }
+  return out
 }
