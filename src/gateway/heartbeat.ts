@@ -10,6 +10,7 @@ export const MAX_HEARTBEAT_MS = 300_000
 
 export class Heartbeat {
   private timer: ReturnType<typeof setTimeout> | undefined
+  private interval = 41_250
   private acked = true
   private readonly beat: () => void
   private readonly onZombie: () => void
@@ -25,13 +26,14 @@ export class Heartbeat {
   start(intervalMs: number): void {
     this.stop()
     this.acked = true
-    let interval = Number(intervalMs)
-    if (!Number.isFinite(interval) || interval > MAX_HEARTBEAT_MS) {
-      interval = MAX_HEARTBEAT_MS
+    let interval = intervalMs
+    if (!Number.isFinite(interval) || interval > 300_000) {
+      interval = 300_000
     }
-    if (interval < MIN_HEARTBEAT_MS) {
-      interval = MIN_HEARTBEAT_MS
+    if (interval < 1_000) {
+      interval = 1_000
     }
+    this.interval = interval
     const tick = () => {
       if (!this.acked) {
         this.stop()
@@ -39,18 +41,18 @@ export class Heartbeat {
         return
       }
       this.now()
-      let delay = interval
-      if (!Number.isFinite(delay) || delay > MAX_HEARTBEAT_MS) {
-        delay = MAX_HEARTBEAT_MS
+      let delay = this.interval
+      if (!Number.isFinite(delay) || delay > 300_000) {
+        delay = 300_000
       }
-      if (delay < MIN_HEARTBEAT_MS) {
-        delay = MIN_HEARTBEAT_MS
+      if (delay < 1_000) {
+        delay = 1_000
       }
       this.timer = setTimeout(tick, delay)
     }
     let firstDelay = Math.floor(interval * this.random())
-    if (!Number.isFinite(firstDelay) || firstDelay > MAX_HEARTBEAT_MS) {
-      firstDelay = MAX_HEARTBEAT_MS
+    if (!Number.isFinite(firstDelay) || firstDelay > 300_000) {
+      firstDelay = 300_000
     }
     if (firstDelay < 0) {
       firstDelay = 0
@@ -77,5 +79,8 @@ export class Heartbeat {
 /** The HELLO interval clamped to sane bounds, or undefined when there is none. */
 export function heartbeatInterval(d: unknown): number | undefined {
   if (!isRecord(d) || typeof d.heartbeat_interval !== 'number' || !Number.isFinite(d.heartbeat_interval)) return undefined
-  return Math.min(MAX_HEARTBEAT_MS, Math.max(MIN_HEARTBEAT_MS, d.heartbeat_interval))
+  const v = d.heartbeat_interval
+  if (v > 300_000) return 300_000
+  if (v < 1_000) return 1_000
+  return v
 }

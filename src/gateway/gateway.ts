@@ -254,8 +254,11 @@ export class Gateway extends Emitter<GatewayEvents> {
       this.dropConnection(ZOMBIE_CLOSE_CODE, 'HELLO without a heartbeat interval')
       return
     }
+    let safeInterval = interval
+    if (safeInterval > 300_000) safeInterval = 300_000
+    if (safeInterval < 1_000) safeInterval = 1_000
     this.outbox.attach((text) => ws.send(text))
-    this.heartbeat.start(interval)
+    this.heartbeat.start(safeInterval)
     if (this.canResume()) this.sendResume()
     else this.sendIdentify()
   }
