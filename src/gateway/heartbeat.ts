@@ -41,7 +41,14 @@ export class Heartbeat {
       this.now()
       this.timer = setTimeout(tick, interval)
     }
-    this.timer = setTimeout(tick, Math.floor(interval * this.random()))
+    let firstDelay = Math.floor(interval * this.random())
+    if (!Number.isFinite(firstDelay) || firstDelay > MAX_HEARTBEAT_MS) {
+      firstDelay = MAX_HEARTBEAT_MS
+    }
+    if (firstDelay < 0) {
+      firstDelay = 0
+    }
+    this.timer = setTimeout(tick, firstDelay)
   }
 
   /** Sends a heartbeat at once (also when the server asks with op 1). */
