@@ -37,7 +37,7 @@ export { MaxBytesExceededError, NotFoundError, RestError } from './rest/error.ts
 export type { DownloadOptions, RateLimitInfo, RequestOptions, RestOptions } from './rest/core.ts'
 
 export { Gateway, type GatewayCloseInfo, type GatewayEvents, type GatewayOptions } from './gateway/gateway.ts'
-export { GatewayError, closeAction, type BackoffOptions, type CloseAction } from './gateway/policy.ts'
+export { GatewayError, closeAction, sanitizeResumeUrl, type BackoffOptions, type CloseAction } from './gateway/policy.ts'
 export { FrameTooLargeError, MAX_FRAME_BYTES } from './gateway/outbox.ts'
 export type { SocketCloseEvent, WebSocketFactory, WebSocketLike } from './gateway/socket.ts'
 

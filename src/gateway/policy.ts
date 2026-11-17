@@ -76,3 +76,23 @@ export class GatewayError extends Error {
     this.reason = reason
   }
 }
+
+/**
+ * Ensures resume_gateway_url matches the origin and host of the base gateway URL.
+ * Prevents SSRF or redirection to unintended endpoints.
+ */
+export function sanitizeResumeUrl(resumeUrl: string | undefined, baseUrl: string): string {
+  if (!resumeUrl || resumeUrl.includes('..')) return baseUrl
+  try {
+    const base = new URL(baseUrl)
+    const target = new URL(resumeUrl, base)
+    if (target.protocol !== 'ws:' && target.protocol !== 'wss:') return baseUrl
+    if (target.hostname !== base.hostname || target.port !== base.port) return baseUrl
+    const safe = new URL(baseUrl)
+    safe.pathname = target.pathname
+    safe.search = target.search
+    return safe.toString()
+  } catch {
+    return baseUrl
+  }
+}

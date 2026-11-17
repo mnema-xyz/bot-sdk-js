@@ -20,9 +20,13 @@ export interface WebSocketLike {
 export type WebSocketFactory = (url: string, headers: Record<string, string>) => WebSocketLike
 
 export const defaultWebSocketFactory: WebSocketFactory = (url, headers) => {
+  const parsed = new URL(url)
+  if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') {
+    throw new Error(`invalid websocket protocol: ${parsed.protocol}`)
+  }
   const Ctor = globalThis.WebSocket as unknown as new (url: string, init: { headers: Record<string, string> }) => WebSocketLike
   if (typeof Ctor !== 'function') throw new Error('no global WebSocket: Node 24 or newer is required')
-  return new Ctor(url, { headers })
+  return new Ctor(parsed.href, { headers })
 }
 
 /** The text of a message event. */
