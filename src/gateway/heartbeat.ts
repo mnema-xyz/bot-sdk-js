@@ -39,7 +39,14 @@ export class Heartbeat {
         return
       }
       this.now()
-      this.timer = setTimeout(tick, interval)
+      let delay = interval
+      if (!Number.isFinite(delay) || delay > MAX_HEARTBEAT_MS) {
+        delay = MAX_HEARTBEAT_MS
+      }
+      if (delay < MIN_HEARTBEAT_MS) {
+        delay = MIN_HEARTBEAT_MS
+      }
+      this.timer = setTimeout(tick, delay)
     }
     let firstDelay = Math.floor(interval * this.random())
     if (!Number.isFinite(firstDelay) || firstDelay > MAX_HEARTBEAT_MS) {
