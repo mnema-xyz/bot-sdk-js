@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, describe, test } from 'node:test'
-import { Gateway, GatewayError, Intents, type GatewayOptions } from '../src/index.ts'
+import { Gateway, GatewayError, Intents, sanitizeResumeUrl, type GatewayOptions } from '../src/index.ts'
 import { startFakeGateway, type FakeGateway } from './helpers/fakeGateway.ts'
 
 let fake: FakeGateway | undefined
@@ -137,6 +137,17 @@ describe('resume', () => {
     const second = await fake.server.nextSocket()
     await second.waitForOp(2)
     assert.equal(second.received.filter((f: any) => f.op === 6).length, 0)
+  })
+
+  test('sanitizeResumeUrl enforces same origin and safe paths', () => {
+    const base = 'wss://talk.example.org/api/bot/v1/gateway'
+    assert.equal(sanitizeResumeUrl(undefined, base), base)
+    assert.equal(sanitizeResumeUrl('wss://talk.example.org/api/bot/v1/gateway?resume=1', base), 'wss://talk.example.org/api/bot/v1/gateway?resume=1')
+    assert.equal(sanitizeResumeUrl('wss://evil.com/api/bot/v1/gateway', base), base)
+    assert.equal(sanitizeResumeUrl('wss://169.254.169.254/secret', base), base)
+    assert.equal(sanitizeResumeUrl('wss://talk.example.org:8443/api/bot/v1/gateway', base), base)
+    assert.equal(sanitizeResumeUrl('https://talk.example.org/api/bot/v1/gateway', base), base)
+    assert.equal(sanitizeResumeUrl('wss://talk.example.org/api/bot/v1/../../etc/passwd', base), base)
   })
 })
 

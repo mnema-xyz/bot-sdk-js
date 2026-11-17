@@ -13,6 +13,7 @@ import {
   closeMeaning,
   GatewayError,
   isProtocolError,
+  sanitizeResumeUrl,
   ZOMBIE_CLOSE_CODE,
   type BackoffOptions,
 } from './policy.ts'
@@ -173,7 +174,8 @@ export class Gateway extends Emitter<GatewayEvents> {
     const generation = this.generation
     let ws: WebSocketLike
     try {
-      const url = this.canResume() && this.resumeUrl ? this.resumeUrl : await this.baseUrl()
+      const base = await this.baseUrl()
+      const url = this.canResume() && this.resumeUrl ? sanitizeResumeUrl(this.resumeUrl, base) : base
       if (this.stopped || generation !== this.generation) return
       this.debug(`connecting to ${url}`)
       ws = (this.o.webSocketFactory ?? defaultWebSocketFactory)(url, { Authorization: `Bot ${this.o.token}` })
@@ -252,8 +254,11 @@ export class Gateway extends Emitter<GatewayEvents> {
       this.dropConnection(ZOMBIE_CLOSE_CODE, 'HELLO without a heartbeat interval')
       return
     }
+    let safeInterval = interval
+    if (safeInterval > 300_000) safeInterval = 300_000
+    if (safeInterval < 1_000) safeInterval = 1_000
     this.outbox.attach((text) => ws.send(text))
-    this.heartbeat.start(interval)
+    this.heartbeat.start(safeInterval)
     if (this.canResume()) this.sendResume()
     else this.sendIdentify()
   }
