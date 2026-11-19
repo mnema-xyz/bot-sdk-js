@@ -1,6 +1,7 @@
 /**
  * An error answer of the REST API, in the shape `{message, code}`:
- * `message` is the server's message, `status`, `method` and `path` say where.
+ * `message` is the server's message, `status`, `method` and `path` say where
+ * (an interaction or webhook token in `path` is replaced by `:token`).
  */
 export class RestError extends Error {
   override name = 'RestError'
@@ -61,5 +62,19 @@ export class MaxBytesExceededError extends Error {
     super(message)
     this.maxBytes = maxBytes
     this.bytes = bytes
+  }
+}
+
+/**
+ * Thrown when a JSON or error answer of the REST API is larger than the
+ * client reads (16 MiB).
+ */
+export class ResponseTooLargeError extends Error {
+  override name = 'ResponseTooLargeError'
+  readonly maxBytes: number
+
+  constructor(maxBytes: number) {
+    super(`the answer exceeds ${maxBytes} bytes, the most the client reads`)
+    this.maxBytes = maxBytes
   }
 }

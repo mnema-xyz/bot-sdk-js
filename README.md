@@ -156,7 +156,11 @@ off or the value is out of bounds
 `createMessage` and `editMessage` also take a string (the content). An error
 answer throws a `RestError` with `status`, `code` (the bot API's JSON error code, for
 example `10003` unknown channel, `50013` missing permissions), `message` (the
-server's) and `body`.
+server's), `body`, `method` and `path`. In `path`, in `onRateLimit`'s info
+and in the client's logs an interaction or webhook token is replaced by
+`:token` (for example `/interactions/<id>/:token/callback`). The client
+reads at most 16 MiB of a JSON or error answer; a larger one is cancelled
+and throws `ResponseTooLargeError`.
 
 ### Downloading attachments
 

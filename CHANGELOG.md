@@ -3,6 +3,14 @@
 All notable changes to `@mnema-xyz/bot-sdk`. Versions follow
 [semver](https://semver.org).
 
+## Unreleased
+
+- `RestError.path`, `onRateLimit`'s `path` and the client's debug and rate-limit
+  logs replace an interaction or webhook token with `:token`
+  (`/interactions/<id>/:token/callback`); the request still goes to the real route.
+- JSON and error answers are read up to 16 MiB, like the Go SDK; a larger one
+  is cancelled and throws the new `ResponseTooLargeError`.
+
 ## 3.4.0 (2026-11-19)
 
 Tested with Mnema Talk 3.2.0 and newer.

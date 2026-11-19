@@ -33,7 +33,7 @@ export { CommandManager } from './client/commands.ts'
 export { Interaction, type EditData, type ReplyData } from './client/interaction.ts'
 
 export { RestClient, type DownloadAttachmentOptions, type DownloadedAttachment } from './rest/client.ts'
-export { MaxBytesExceededError, NotFoundError, RestError } from './rest/error.ts'
+export { MaxBytesExceededError, NotFoundError, ResponseTooLargeError, RestError } from './rest/error.ts'
 export type { DownloadOptions, RateLimitInfo, RequestOptions, RestOptions } from './rest/core.ts'
 
 export { Gateway, type GatewayCloseInfo, type GatewayEvents, type GatewayOptions } from './gateway/gateway.ts'
