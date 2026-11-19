@@ -342,7 +342,7 @@ avatar, valid commands). See
 ```sh
 npm install
 npm --prefix tools/lint ci   # the linter has its own dependencies
-npm run lint         # ESLint with the size limits: files 400 lines, tests 800, functions 80, cognitive complexity 15
+npm run lint         # ESLint with the size limits: files 400 lines, tests 800, functions 80, cyclomatic and cognitive complexity 15
 npm run typecheck    # tsc --noEmit, strict, sources, tests and examples
 npm run build        # dist/ with types
 npm test             # offline: builders, REST against node:http, the gateway against a local WebSocket server

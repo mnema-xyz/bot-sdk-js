@@ -1,5 +1,6 @@
 // Lint and size limits for the SDK: the same limits as Mnema Talk's web and Go
-// code (files 400 lines, tests 800, functions 80 lines, cognitive complexity 15).
+// code (files 400 lines, tests 800, functions 80 lines, cyclomatic and cognitive
+// complexity 15).
 import js from '@eslint/js'
 import sonarjs from 'eslint-plugin-sonarjs'
 import tseslint from 'typescript-eslint'
@@ -20,6 +21,7 @@ export default tseslint.config(
       'max-lines': ['error', { max: 400, skipBlankLines: false, skipComments: false }],
       'max-lines-per-function': ['error', { max: 80, skipBlankLines: false, skipComments: false, IIFEs: true }],
       'sonarjs/cognitive-complexity': ['error', 15],
+      complexity: ['error', 15],
     },
   },
   {
