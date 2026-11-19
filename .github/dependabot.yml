@@ -31,6 +31,8 @@ updates:
       lint:
         patterns: ["*"]
     ignore:
+      # typescript-eslint 8.73 supports TypeScript ">=4.8.4 <6.1.0" (peer range);
+      # lift this when a typescript-eslint release supports TypeScript 7.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
 

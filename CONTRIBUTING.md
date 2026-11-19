@@ -21,7 +21,7 @@ in the README (Contract tests); CI runs them on every pull request.
 
 - **No runtime dependencies.** The SDK uses what Node ships.
 - **Limits** (ESLint enforces them): files 400 lines, test files 800,
-  functions 80 lines, cognitive complexity 15. Split code rather than raising a limit.
+  functions 80 lines, cyclomatic and cognitive complexity 15. Split code rather than raising a limit.
 - **Behaviour tests.** Test what a bot sees (requests, frames, events), not internals.
 - **Commits** follow [Conventional Commits](https://www.conventionalcommits.org)
   (`fix:`, `feat:`, `docs:`, `ci:`, ...). Pull requests are squash-merged once CI is green.
