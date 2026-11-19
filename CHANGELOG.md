@@ -3,7 +3,9 @@
 All notable changes to `@mnema-xyz/bot-sdk`. Versions follow
 [semver](https://semver.org).
 
-## Unreleased
+## 3.4.0 (2026-11-19)
+
+Tested with Mnema Talk 3.2.0 and newer.
 
 - Added `lifetime_seconds` to `CreateMessageData` and `expires_at` to `Message`
   (timed messages), with a contract test for the answer, the event and a read.
