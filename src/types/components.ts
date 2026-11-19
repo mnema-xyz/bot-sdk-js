@@ -1,4 +1,4 @@
-// Message components and modals in Discord's wire shape (doc/bots.md,
+// Message components and modals as the bot API sends them (doc/bots.md,
 // "Message components" and "Modals").
 
 export interface ComponentEmoji {

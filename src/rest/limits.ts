@@ -39,7 +39,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * The bucket of a route: method and path with ids replaced, except a channel
- * id, which keeps channels apart (Discord's "major parameter"). Posting a
+ * id, which keeps channels apart (the route's major parameter). Posting a
  * message and uploading a file share the per-channel message bucket.
  */
 export function bucketKey(method: string, path: string): string {

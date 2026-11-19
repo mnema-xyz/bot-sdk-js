@@ -7,6 +7,9 @@ All notable changes to `@mnema-xyz/bot-sdk`. Versions follow
 
 - Added `lifetime_seconds` to `CreateMessageData` and `expires_at` to `Message`
   (timed messages), with a contract test for the answer, the event and a read.
+- Docs and doc comments point at mnema-xyz/talk and describe the bot API's own
+  JSON, codes and permission bits without comparisons to other products. CI's
+  contract job checks out mnema-xyz/talk directly.
 
 ## 3.3.0 (2026-11-15)
 

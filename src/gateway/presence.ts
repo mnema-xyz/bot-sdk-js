@@ -1,4 +1,4 @@
-// The `d` of PRESENCE_UPDATE (op 3), in Discord's format, checked early: the
+// The `d` of PRESENCE_UPDATE (op 3), checked early: the
 // gateway closes with 4002 on a bad status or activity type.
 import { ValidationError } from '../builders/validate.ts'
 import type { PresenceData } from '../types/gateway.ts'

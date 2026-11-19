@@ -66,8 +66,8 @@ export interface CommandInput {
    * `null` or omitted: available to everyone who can use commands in the channel.
    * `"0"` or `[]`: available to nobody except Administrator/Owner.
    *
-   * Note: Mnema's permission bits are NOT Discord's bit values! Use `Permissions`
-   * from this SDK or permission keys, never Discord's PermissionFlagsBits.
+   * Mnema's permission bits have their own values: use `Permissions` from
+   * this SDK or permission keys, never bit constants from other chat libraries.
    */
   default_member_permissions?: DefaultMemberPermissionsInput
 }

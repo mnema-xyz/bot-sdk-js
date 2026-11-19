@@ -1,4 +1,4 @@
-// Builders of message components: plain JSON in Discord's shape, checked
+// Builders of message components: the plain JSON of the bot API, checked
 // against the documented limits when built.
 import type {
   ActionRow,

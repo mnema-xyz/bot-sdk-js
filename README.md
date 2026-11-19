@@ -10,7 +10,7 @@ slash commands, interactions, message components, modals and the add link.
 
 - Node 24 or newer, ES modules, **no runtime dependencies** (Node's `fetch`,
   `WebSocket`, `FormData` and `Blob`).
-- Types for every wire object; builders return plain JSON in Discord's shape,
+- Types for every wire object; builders return the plain JSON of the bot API,
   and plain objects work wherever builders do.
 - Tested on every change against a real Mnema Talk server (contract tests).
 - Published from CI with [npm provenance](https://docs.npmjs.com/generating-provenance-statements),
@@ -19,7 +19,7 @@ slash commands, interactions, message components, modals and the add link.
 **Docs:** [developer guide](https://mnema.xyz/developers/) ·
 [quick start](https://mnema.xyz/developers/quickstart/) ·
 [SDK reference](https://mnema.xyz/developers/typescript-sdk/) ·
-[bot platform reference](https://github.com/msch128/mnema-talk/blob/main/doc/bots.md) ·
+[bot platform reference](https://github.com/mnema-xyz/talk/blob/main/doc/bots.md) ·
 [Mnemo, a complete bot built on it](https://github.com/mnema-xyz/talk-mnemo-bot)
 
 ## Install
@@ -35,7 +35,7 @@ with `'@mnema-xyz/bot-sdk'`. The API is the same.
 
 ## Quick start
 
-Create the bot and its token first ([Getting started](https://github.com/msch128/mnema-talk/blob/main/doc/bots.md#getting-started)).
+Create the bot and its token first ([Getting started](https://github.com/mnema-xyz/talk/blob/main/doc/bots.md#getting-started)).
 
 ```ts
 import { Client, Intents, actionRow, button, ButtonStyle } from '@mnema-xyz/bot-sdk'
@@ -154,7 +154,7 @@ off or the value is out of bounds
 ([timed messages](https://github.com/mnema-xyz/talk/blob/main/doc/timed-messages.md)).
 
 `createMessage` and `editMessage` also take a string (the content). An error
-answer throws a `RestError` with `status`, `code` (Discord's JSON code, for
+answer throws a `RestError` with `status`, `code` (the bot API's JSON error code, for
 example `10003` unknown channel, `50013` missing permissions), `message` (the
 server's) and `body`.
 
@@ -199,7 +199,7 @@ A command can restrict who can see and run it in a channel with `default_member_
 - An array of permission keys (e.g. `['ban_members']`), a decimal bitfield string (e.g. `"524288"`), or `Permissions` bitwise flags (e.g. `Permissions.BanMembers`).
 
 > [!WARNING]
-> Mnema's permission bit values are **not** Discord's bit values (e.g. `discord.js`'s `PermissionFlagsBits`). Do not reuse Discord's permission constants; use `Permissions` from this SDK, pass permission keys (e.g. `['administrator']`), or compute them from Mnema's catalogue.
+> Mnema's permission bits have their own values: bit constants from other chat libraries do not match them. Use `Permissions` from this SDK, pass permission keys (e.g. `['administrator']`), or compute the bits from Mnema's catalogue (`GET /api/permissions`).
 
 ## Interactions
 
@@ -268,8 +268,8 @@ up to 150, `min_values` 0 to 25 and `max_values` 1 to 25; a modal has a title
 up to 45 and 1 to 5 text inputs (labels up to 45, lengths 0 to 4000). The
 same checks run on plain objects passed to `createMessage`, `editMessage`
 and the interaction answers. The full rules are in
-[Message components](https://github.com/msch128/mnema-talk/blob/main/doc/bots.md#message-components) and
-[Modals](https://github.com/msch128/mnema-talk/blob/main/doc/bots.md#modals).
+[Message components](https://github.com/mnema-xyz/talk/blob/main/doc/bots.md#message-components) and
+[Modals](https://github.com/mnema-xyz/talk/blob/main/doc/bots.md#modals).
 
 ## Rate limits
 
@@ -323,7 +323,7 @@ const link = addBotLink('https://talk.example.org', {
 `encodeManifest(manifest)` gives the base64url part alone. Both check the
 manifest (version 1, name 1 to 24 characters, an `https` homepage, a `data:`
 avatar, valid commands). See
-[Adding a bot from a manifest](https://github.com/msch128/mnema-talk/blob/main/doc/bots.md#adding-a-bot-from-a-manifest).
+[Adding a bot from a manifest](https://github.com/mnema-xyz/talk/blob/main/doc/bots.md#adding-a-bot-from-a-manifest).
 
 ## Versioning and support
 
