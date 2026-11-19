@@ -1,4 +1,4 @@
-// Numbers of the wire protocol, with Discord's values (doc/bots.md).
+// Numbers of the wire protocol (doc/bots.md).
 
 /** Gateway intents: bits of IDENTIFY's `intents`. */
 export const Intents = {
@@ -127,9 +127,9 @@ export const API_BASE_PATH = '/api/bot/v1'
 /**
  * Mnema Talk's permission bits.
  *
- * WARNING: Mnema's permission bit values are NOT Discord's bit values!
- * Do not reuse Discord's permission constants or PermissionFlagsBits.
- * Compute bit values from Mnema's catalogue or pass an array of permission keys.
+ * Mnema's permission bits have their own values: bit constants from other
+ * chat libraries do not match them. Use these, compute bits from Mnema's
+ * catalogue or pass an array of permission keys.
  */
 export const Permissions = {
   Administrator: 1n,
