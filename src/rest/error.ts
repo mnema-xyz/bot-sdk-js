@@ -1,12 +1,12 @@
 /**
- * An error answer of the REST API, in Discord's shape `{message, code}`:
+ * An error answer of the REST API, in the shape `{message, code}`:
  * `message` is the server's message, `status`, `method` and `path` say where.
  */
 export class RestError extends Error {
   override name = 'RestError'
   /** HTTP status. */
   readonly status: number
-  /** Discord's JSON error code: 10003 unknown channel, 10008 unknown message, 50013 missing permissions, 50035 invalid form body, 0 plain HTTP errors. */
+  /** The JSON error code: 10003 unknown channel, 10008 unknown message, 50013 missing permissions, 50035 invalid form body, 0 plain HTTP errors. */
   readonly code: number
   /** The parsed body (or the raw text when it was not JSON). */
   readonly body: unknown
