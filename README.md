@@ -330,8 +330,9 @@ avatar, valid commands). See
 - [Semantic versioning](https://semver.org): a minor version adds, a major
   version may break, and every change is in the [changelog](CHANGELOG.md).
 - Each version names the oldest Mnema Talk server it is tested with in its
-  changelog entry; CI runs the contract tests against Mnema Talk's current
-  `main`, so new server releases are covered before they ship.
+  changelog entry; CI runs the contract tests against Mnema Talk's `main` and
+  its latest release, so new server releases are covered before they ship and
+  the SDK keeps working with the released server.
 - Fixes, security fixes included, go into the latest version only. Report a
   vulnerability privately as [SECURITY.md](SECURITY.md) says.
 - Questions and bugs: [issues](https://github.com/mnema-xyz/bot-sdk-js/issues).
@@ -342,7 +343,7 @@ avatar, valid commands). See
 ```sh
 npm install
 npm --prefix tools/lint ci   # the linter has its own dependencies
-npm run lint         # ESLint with the size limits: files 400 lines, tests 800, functions 80, cyclomatic and cognitive complexity 15
+npm run lint         # ESLint with the size limits: files 400 lines, tests 800, functions 80 (tests too), cyclomatic and cognitive complexity 15
 npm run typecheck    # tsc --noEmit, strict, sources, tests and examples
 npm run build        # dist/ with types
 npm test             # offline: builders, REST against node:http, the gateway against a local WebSocket server
@@ -368,8 +369,8 @@ MNEMA_CONTRACT_URL=http://127.0.0.1:8080 MNEMA_CONTRACT_TOKEN=mnb_... \
 MNEMA_CONTRACT_CHANNEL=... MNEMA_CONTRACT_MEMBER_COOKIE='...' npm run test:contract
 ```
 
-CI runs them on every change against Mnema Talk's current `main`: the
-`contract` job checks out the server, puts this SDK where the server's
+CI runs them on every change twice, against Mnema Talk's `main` and its latest
+release: each `contract` job checks out the server, puts this SDK where the server's
 `TestSDKContract` expects it, and runs that test (it starts a real server on a
 database, a bot, a channel and a signed-in member). Mnema Talk's own CI runs
 the same test against a pinned commit of this repository.

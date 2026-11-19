@@ -100,7 +100,9 @@ describe('downloadAttachment', () => {
       },
     )
   })
+})
 
+describe('downloadAttachment: timeouts, aborts and errors', () => {
   test('timeout aborts the request when the server stalls', async () => {
     const rest = await client(() => {
       // Intentionally do not reply to trigger timeout.

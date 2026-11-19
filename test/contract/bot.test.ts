@@ -41,22 +41,28 @@ function next<K extends keyof ClientEvents>(c: Client, event: K, pred: (...a: Cl
 
 const nextInteraction = (c: Client, pred: (i: Interaction) => boolean) => next(c, 'interactionCreate', pred).then(([i]) => i)
 
-describe('contract with a running server', { skip }, () => {
-  let client: Client
-  let member: Member
-  let botUserId = ''
+// One bot and one member for the whole suite; the describes run in order and
+// share them, like the steps of one session.
+let client: Client
+let member: Member
+let botUserId = ''
+let botHandle = ''
+let commandId = ''
+let commandRun: Interaction | undefined
 
-  before(() => {
-    client = new Client({ baseUrl: env.url, token: env.token, intents })
-    member = new Member(env)
-  })
+before(() => {
+  if (skip) return
+  client = new Client({ baseUrl: env.url, token: env.token, intents })
+  member = new Member(env)
+})
 
-  after(async () => {
-    member?.close()
-    await client?.close()
-  })
+after(async () => {
+  if (skip) return
+  member?.close()
+  await client?.close()
+})
 
-  let botHandle = ''
+describe('contract: the bot, the gateway and messages', { skip }, () => {
   test('GET /users/@me answers the bot with its allowed intents', async () => {
     const me = await client.rest.getMe()
     assert.equal(me.bot, true)
@@ -102,8 +108,9 @@ describe('contract with a running server', { skip }, () => {
     const again = await client.rest.getMessage(env.channel, posted.id)
     assert.equal(Date.parse(again.expires_at ?? ''), Date.parse(posted.expires_at))
   })
+})
 
-  let commandId = ''
+describe('contract: commands and their answers', { skip }, () => {
   test('a command is registered and listed', async () => {
     const cmd = await client.commands.create({
       name: 'contract-echo',
@@ -132,7 +139,6 @@ describe('contract with a running server', { skip }, () => {
     commandRun = i
   })
 
-  let commandRun: Interaction | undefined
   test('the answers take allowed_mentions like a post, and @original takes no flags', async () => {
     const i = commandRun!
     const name = `@${i.user.username}`
@@ -149,7 +155,9 @@ describe('contract with a running server', { skip }, () => {
       (e: unknown) => e instanceof RestError && e.status === 400 && /flags cannot be set on @original/.test(e.message),
     )
   })
+})
 
+describe('contract: components, modals, rate limits and shutdown', { skip }, () => {
   test('a button click reaches the SDK, which updates the message the member sees', async () => {
     const posted = await client.rest.createMessage(env.channel, {
       content: `contract ${run}: click me`,

@@ -44,13 +44,19 @@ jobs:
       - name: Lint, typecheck, build, test, pack
         run: npm run check
 
-  # The contract tests against a real Mnema Talk server from its current main:
-  # the server's TestSDKContract starts a real router on a database, creates a
-  # bot, a channel and a signed-in member, and runs `npm run test:contract` in
+  # The contract tests against a real Mnema Talk server, from its main (what
+  # comes next) and from its latest release (what people run): the server's
+  # TestSDKContract starts a real router on a database, creates a bot, a
+  # channel and a signed-in member, and runs `npm run test:contract` in
   # sdk/typescript, where this checkout is put.
   contract:
+    name: contract (talk ${{ matrix.talk }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        talk: [main, release]
     services:
       postgres:
         image: postgres:18-alpine
@@ -74,11 +80,22 @@ jobs:
           persist-credentials: false
           path: sdk
 
+      - name: Which talk
+        id: talk
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TALK: ${{ matrix.talk }}
+        run: |
+          set -euo pipefail
+          if [ "$TALK" = main ]; then ref=main; else ref="$(gh api repos/mnema-xyz/talk/releases/latest --jq .tag_name)"; fi
+          echo "talk ref: $ref"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           repository: mnema-xyz/talk
-          ref: main
+          ref: ${{ steps.talk.outputs.ref }}
           path: talk
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

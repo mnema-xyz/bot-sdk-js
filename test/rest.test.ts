@@ -75,7 +75,9 @@ describe('request shapes', () => {
     )
     assert.deepEqual(server!.requests[4]!.json(), { components: [] })
   })
+})
 
+describe('request shapes: commands, uploads and components', () => {
   test('registers commands with an options list and answers interactions on their routes', async () => {
     const rest = await client(ok)
     await rest.setCommands([{ name: 'ping', description: 'Replies with pong' }])

@@ -25,8 +25,14 @@ export default tseslint.config(
     },
   },
   {
+    // Tests: 800 lines per file; functions (describe blocks included) and
+    // complexity as for the code.
     files: ['**/*.test.ts'],
-    rules: { 'max-lines': ['error', { max: 800, skipBlankLines: false, skipComments: false }] },
+    rules: {
+      'max-lines': ['error', { max: 800, skipBlankLines: false, skipComments: false }],
+      'max-lines-per-function': ['error', { max: 80, skipBlankLines: false, skipComments: false, IIFEs: true }],
+      complexity: ['error', 15],
+    },
   },
   {
     // The tests and their helpers read loose JSON frames from fakes and the
