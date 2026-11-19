@@ -158,9 +158,14 @@ answer throws a `RestError` with `status`, `code` (the bot API's JSON error code
 example `10003` unknown channel, `50013` missing permissions), `message` (the
 server's), `body`, `method` and `path`. In `path`, in `onRateLimit`'s info
 and in the client's logs an interaction or webhook token is replaced by
-`:token` (for example `/interactions/<id>/:token/callback`). The client
-reads at most 16 MiB of a JSON or error answer; a larger one is cancelled
-and throws `ResponseTooLargeError`.
+`:token` (for example `/interactions/<id>/:token/callback`). Redirects are
+not followed: a `3xx` answer throws a `RestError` with its status, so the
+bot token goes to `baseUrl` only. A request that gets no answer throws a
+`RequestFailedError` with `method`, `path` and the underlying message, the
+token replaced there too (`cause` is kept only on routes without a token);
+aborts and timeouts are thrown as they are. The client reads at most 16 MiB
+of a JSON or error answer (the same bound as the Go SDK); a larger one is
+cancelled and throws `ResponseTooLargeError` with `status` and `maxBytes`.
 
 ### Downloading attachments
 

@@ -55,7 +55,10 @@ export function bucketKey(method: string, path: string): string {
 
 /**
  * The index of the path segment that carries an interaction or webhook token
- * (`/interactions/{id}/{token}/...`, `/webhooks/{id}/{token}`), or -1.
+ * (`/interactions/{id}/{token}/...`, `/webhooks/{id}/{token}`), or -1. No
+ * method of the client calls a `/webhooks` route yet; the match covers one
+ * sent through `request()` or added later, which is then redacted and shares
+ * one bucket per route like the interaction routes.
  */
 function tokenIndex(parts: string[]): number {
   return parts.length >= 4 && parts[0] === '' && (parts[1] === 'interactions' || parts[1] === 'webhooks') ? 3 : -1
@@ -72,6 +75,24 @@ export function redactPath(path: string): string {
   const i = tokenIndex(parts)
   if (i >= 0) parts[i] = ':token'
   return parts.join('/') + query
+}
+
+/**
+ * text with the token segment of path (see tokenIndex), raw and decoded,
+ * replaced by `:token`: for messages that may quote the request URL.
+ */
+export function redactText(text: string, path: string): string {
+  const parts = splitQuery(path)[0].split('/')
+  const i = tokenIndex(parts)
+  const token = i < 0 ? '' : (parts[i] ?? '')
+  if (token === '') return text
+  let decoded = token
+  try {
+    decoded = decodeURIComponent(token)
+  } catch {
+    // an undecodable segment is replaced as it is
+  }
+  return text.replaceAll(token, ':token').replaceAll(decoded, ':token')
 }
 
 function splitQuery(path: string): [string, string] {

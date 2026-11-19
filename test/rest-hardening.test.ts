@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { RestClient, RestError, ResponseTooLargeError, type RateLimitInfo } from '../src/index.ts'
+import { RequestFailedError, RestClient, RestError, ResponseTooLargeError, type RateLimitInfo } from '../src/index.ts'
 import { MAX_RESPONSE_BYTES } from '../src/rest/body.ts'
 import { redactPath } from '../src/rest/limits.ts'
+import { sendJson, startHttpServer } from './helpers/httpServer.ts'
 
 const TOKEN = 'aW50ZXJhY3Rpb24tdG9rZW4tc2VjcmV0'
 
@@ -68,7 +69,7 @@ describe('answer size bound', () => {
         pulled.bytes += n
         controller.enqueue(new Uint8Array(n).fill(0x20))
       },
-    })
+    }, { highWaterMark: 0 }) // nothing is pulled before a read
   }
 
   test('a streamed JSON answer beyond 16 MiB is not read to its end and throws', async () => {
@@ -79,16 +80,21 @@ describe('answer size bound', () => {
     const err = await rest.getMe().catch((e: unknown) => e)
     assert.ok(err instanceof ResponseTooLargeError, String(err))
     assert.equal(err.maxBytes, 16 * 1024 * 1024)
-    assert.match(err.message, /exceeds 16777216 bytes/)
+    assert.equal(err.status, 200)
+    assert.match(err.message, /HTTP 200\) exceeds 16777216 bytes/)
     assert.ok(pulled.bytes < MAX_RESPONSE_BYTES * 2, `read ${pulled.bytes} bytes`)
   })
 
-  test('an error answer whose Content-Length is beyond the bound throws without reading it', async () => {
-    const fetch = async () => new Response(streamOf(MAX_RESPONSE_BYTES + 10), {
+  test('an error answer whose Content-Length is beyond the bound throws with its status without reading it', async () => {
+    const pulled = { bytes: 0 }
+    const fetch = async () => new Response(streamOf(MAX_RESPONSE_BYTES + 10, pulled), {
       status: 500, headers: { 'content-length': String(MAX_RESPONSE_BYTES + 10) },
     })
     const rest = new RestClient({ baseUrl: 'https://talk.example.org', token: 'mnb_secret', fetch })
-    await assert.rejects(rest.getMe(), ResponseTooLargeError)
+    const err = await rest.getMe().catch((e: unknown) => e)
+    assert.ok(err instanceof ResponseTooLargeError, String(err))
+    assert.equal(err.status, 500)
+    assert.equal(pulled.bytes, 0)
   })
 
   test('an answer of exactly 16 MiB is read', async () => {
@@ -96,5 +102,44 @@ describe('answer size bound', () => {
     const rest = new RestClient({ baseUrl: 'https://talk.example.org', token: 'mnb_secret', fetch })
     const got = (await rest.request<string>('GET', '/users/@me'))
     assert.equal(got.length, MAX_RESPONSE_BYTES)
+  })
+})
+
+describe('failed requests and redirects', () => {
+  test('a rejected fetch quoting the URL becomes a RequestFailedError without the token', async () => {
+    const fetch = async (u: string | URL | Request) => {
+      throw new Error(`request to ${String(u)} failed, reason: connect ECONNREFUSED`)
+    }
+    const rest = new RestClient({ baseUrl: 'https://talk.example.org', token: 'mnb_secret', fetch })
+    const err = await rest.createInteractionResponse('i1', TOKEN, { type: 5 }).catch((e: unknown) => e)
+    assert.ok(err instanceof RequestFailedError, String(err))
+    assert.equal(err.method, 'POST')
+    assert.equal(err.path, '/interactions/i1/:token/callback')
+    assert.equal(err.cause, undefined)
+    assert.match(err.message, /^POST \/interactions\/i1\/:token\/callback failed: .*ECONNREFUSED/)
+    assert.ok(!`${err.message} ${err.stack}`.includes(TOKEN), err.message)
+  })
+
+  test('a rejected fetch on a route without a token keeps its cause', async () => {
+    const cause = new TypeError('fetch failed')
+    const rest = new RestClient({ baseUrl: 'https://talk.example.org', token: 'mnb_secret', fetch: async () => { throw cause } })
+    const err = await rest.getMe().catch((e: unknown) => e)
+    assert.ok(err instanceof RequestFailedError, String(err))
+    assert.equal(err.cause, cause)
+  })
+
+  test('a redirect is a RestError and the token stays with the configured server', async () => {
+    const target = await startHttpServer((_req, res) => sendJson(res, 200, { id: 'u' }))
+    const origin = await startHttpServer((req, res) => void res.writeHead(302, { Location: target.url + req.url }).end())
+    try {
+      const rest = new RestClient({ baseUrl: origin.url, token: 'mnb_secret' })
+      const err = await rest.getMe().catch((e: unknown) => e)
+      assert.ok(err instanceof RestError, String(err))
+      assert.equal(err.status, 302)
+      assert.equal(target.requests.length, 0)
+    } finally {
+      await origin.close()
+      await target.close()
+    }
   })
 })

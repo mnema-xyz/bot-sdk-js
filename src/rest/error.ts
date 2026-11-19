@@ -72,9 +72,31 @@ export class MaxBytesExceededError extends Error {
 export class ResponseTooLargeError extends Error {
   override name = 'ResponseTooLargeError'
   readonly maxBytes: number
+  /** The HTTP status of the answer. */
+  readonly status: number
 
-  constructor(maxBytes: number) {
-    super(`the answer exceeds ${maxBytes} bytes, the most the client reads`)
+  constructor(maxBytes: number, status: number) {
+    super(`the answer (HTTP ${status}) exceeds ${maxBytes} bytes, the most the client reads`)
     this.maxBytes = maxBytes
+    this.status = status
+  }
+}
+
+/**
+ * Thrown when a request got no answer (the connection failed, for example).
+ * The message names the method and the route with an interaction or webhook
+ * token replaced by `:token`, and the underlying error's message with the
+ * token replaced likewise; `cause` is set only for a route without a token.
+ * Aborts and timeouts are thrown as they are (`AbortError`, `TimeoutError`).
+ */
+export class RequestFailedError extends Error {
+  override name = 'RequestFailedError'
+  readonly method: string
+  readonly path: string
+
+  constructor(init: { method: string; path: string; message: string; cause?: unknown }) {
+    super(`${init.method} ${init.path} failed: ${init.message}`, init.cause === undefined ? undefined : { cause: init.cause })
+    this.method = init.method
+    this.path = init.path
   }
 }

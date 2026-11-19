@@ -3,9 +3,9 @@
 import { API_BASE_PATH } from '../constants.ts'
 import { sleep, trimSlash, type Logger } from '../util.ts'
 import { VERSION } from '../version.ts'
-import { MaxBytesExceededError, NotFoundError, RestError } from './error.ts'
+import { MaxBytesExceededError, NotFoundError, RequestFailedError, RestError } from './error.ts'
 import { readBody } from './body.ts'
-import { Bucket, WindowLimiter, bucketKey, isMessagePost, redactPath } from './limits.ts'
+import { Bucket, WindowLimiter, bucketKey, isMessagePost, redactPath, redactText } from './limits.ts'
 
 export interface RestOptions {
   /** The server, for example https://talk.example.org (a trailing slash is fine). */
@@ -135,12 +135,7 @@ export class RestCore {
         'User-Agent': this.userAgent,
       }
       this.logger?.debug?.(`rest ${method} ${shown}`)
-      const res = await this.fetchImpl(this.url(path, undefined), {
-        method,
-        headers,
-        signal,
-        redirect: 'manual',
-      })
+      const res = await this.fetch(method, path, { method, headers, signal, redirect: 'manual' })
       if (res.status === 429) {
         const wait = await this.noteRateLimit(res, bucket, { method, path: shown, key, attempt, maxRetries: this.maxRetries })
         if (wait.willRetry) continue
@@ -198,7 +193,25 @@ export class RestCore {
     const timeout = AbortSignal.timeout(this.timeoutMs)
     const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
     this.logger?.debug?.(`rest ${method} ${redactPath(path)}`)
-    return this.fetchImpl(this.url(path, opts.query), { method, headers, body, signal })
+    // The bot API answers without redirects; one becomes a RestError with its
+    // status instead of being followed, so the token goes to baseUrl only.
+    return this.fetch(method, path, { method, headers, body, signal, redirect: 'manual' }, opts.query)
+  }
+
+  /**
+   * fetch, with a failure that is not an abort or timeout rethrown as a
+   * RequestFailedError whose message leaves an interaction or webhook token
+   * out (a custom fetch may quote the URL in its message).
+   */
+  private async fetch(method: string, path: string, init: RequestInit, query?: RequestOptions['query']): Promise<Response> {
+    try {
+      return await this.fetchImpl(this.url(path, query), init)
+    } catch (err) {
+      if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) throw err
+      const shown = redactPath(path)
+      const message = redactText(err instanceof Error ? err.message : String(err), path)
+      throw new RequestFailedError({ method, path: shown, message, cause: shown === path ? err : undefined })
+    }
   }
 
   private url(path: string, query: RequestOptions['query']): string {

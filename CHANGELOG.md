@@ -5,11 +5,20 @@ All notable changes to `@mnema-xyz/bot-sdk`. Versions follow
 
 ## Unreleased
 
-- `RestError.path`, `onRateLimit`'s `path` and the client's debug and rate-limit
-  logs replace an interaction or webhook token with `:token`
-  (`/interactions/<id>/:token/callback`); the request still goes to the real route.
-- JSON and error answers are read up to 16 MiB, like the Go SDK; a larger one
-  is cancelled and throws the new `ResponseTooLargeError`.
+- Behaviour change: `RestError.path` and `RateLimitInfo.path` (`onRateLimit`)
+  now carry an interaction or webhook token as `:token`
+  (`/interactions/<id>/:token/callback`), as do the client's debug and
+  rate-limit logs; the request still goes to the real route. Routes under
+  `/webhooks/{id}/{token}` sent through `request()` share one rate-limit
+  bucket per route, as interaction routes do.
+- REST requests no longer follow redirects: a `3xx` answer throws a
+  `RestError` with its status (downloads already did not follow them).
+- A request that gets no answer throws the new `RequestFailedError` naming the
+  method and the redacted route, with the token replaced in the underlying
+  message as well; aborts and timeouts are thrown unchanged.
+- JSON and error answers are read up to 16 MiB (the same bound as the Go SDK);
+  a larger one is cancelled and throws the new `ResponseTooLargeError` with the
+  answer's `status`.
 
 ## 3.4.0 (2026-11-19)
 
