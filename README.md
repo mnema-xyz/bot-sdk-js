@@ -136,7 +136,7 @@ on `error`.
 | `listChannels()` | `GET /channels` |
 | `listMessages(channelId, { limit, before, after, around })` | `GET /channels/{id}/messages` |
 | `getMessage(channelId, messageId)` | `GET /channels/{id}/messages/{id}` |
-| `createMessage(channelId, { content, embeds, components, allowed_mentions, message_reference, parent_id })` | `POST /channels/{id}/messages` |
+| `createMessage(channelId, { content, embeds, components, allowed_mentions, message_reference, parent_id, lifetime_seconds })` | `POST /channels/{id}/messages` |
 | `editMessage(channelId, messageId, { content?, components? })` | `PATCH /channels/{id}/messages/{id}` |
 | `deleteMessage(channelId, messageId)` | `DELETE /channels/{id}/messages/{id}` |
 | `addReaction(channelId, messageId, emoji)`, `removeReaction(...)` | `PUT`, `DELETE .../reactions/{emoji}/@me` |
@@ -145,6 +145,13 @@ on `error`.
 | `listMembers()`, `getMember(userId)` | `GET /members`, `GET /members/{id}` |
 | `listCommands()`, `setCommands(list)`, `createCommand(cmd)`, `deleteCommand(id)` | `/commands` |
 | `request(method, path, { query, body, form, signal })` | any route under `/api/bot/v1` |
+
+`lifetime_seconds` (60 to 2,592,000, at most the community's ceiling) makes the
+server delete the message that long after it is stored; such a message carries
+`expires_at` (RFC 3339) in the answer, in `messageCreate` and on reads, which
+leave it out once that has passed. The server answers `400` when lifetimes are
+off or the value is out of bounds
+([timed messages](https://github.com/mnema-xyz/talk/blob/main/doc/timed-messages.md)).
 
 `createMessage` and `editMessage` also take a string (the content). An error
 answer throws a `RestError` with `status`, `code` (Discord's JSON code, for
