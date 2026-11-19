@@ -33,6 +33,13 @@ describe('request shapes', () => {
     assert.deepEqual(r.json(), { content: 'build **passed**', embeds: [{ title: 'Run 42', color: 65280 }] })
   })
 
+  test('sends lifetime_seconds and reads expires_at back', async () => {
+    const rest = await client((_req, res) => sendJson(res, 201, { id: 'm', channel_id: 'c', created_at: '2026-11-13T10:00:00Z', expires_at: '2026-11-13T11:00:00Z' }))
+    const m = await rest.createMessage('c', { content: 'soon gone', lifetime_seconds: 3600 })
+    assert.deepEqual(server!.requests[0]!.json(), { content: 'soon gone', lifetime_seconds: 3600 })
+    assert.equal(m.expires_at, '2026-11-13T11:00:00Z')
+  })
+
   test('maps each route to its method and path', async () => {
     const rest = await client(ok)
     await rest.getMe()

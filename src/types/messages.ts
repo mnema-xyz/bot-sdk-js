@@ -127,6 +127,12 @@ export interface Message {
   tags?: unknown[]
   /** 64 on an ephemeral note (in a component interaction's message). */
   flags?: number
+  /**
+   * When the server deletes a message sent with `lifetime_seconds` (RFC 3339);
+   * absent on a message without a lifetime. Reads leave such a message out
+   * once this has passed.
+   */
+  expires_at?: string
 }
 
 export type ChannelType = 'text' | 'voice' | 'forum' | (string & {})
@@ -216,6 +222,13 @@ export interface CreateMessageData {
   allowed_mentions?: AllowedMentions
   message_reference?: MessageReference
   parent_id?: string
+  /**
+   * Makes the server delete the message that long after it is stored, as for
+   * a member: 60 to 2,592,000 and at most the community's ceiling
+   * (doc/timed-messages.md). Refused with 400 when lifetimes are off or out
+   * of bounds. The message then carries `expires_at`.
+   */
+  lifetime_seconds?: number
 }
 
 /** Body of PATCH /channels/{id}/messages/{id}: absent fields stay. */
