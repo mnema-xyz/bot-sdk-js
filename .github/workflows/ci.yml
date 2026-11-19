@@ -49,7 +49,7 @@ jobs:
   # TestSDKContract starts a real router on a database, creates a bot, a
   # channel and a signed-in member, and runs `npm run test:contract` in
   # sdk/typescript, where this checkout is put.
-  contract:
+  contract-talk:
     name: contract (talk ${{ matrix.talk }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -125,3 +125,15 @@ jobs:
           go test -tags=integration -count=1 -v -run '^TestSDKContract$/^typescript$' ./internal/server | tee "$RUNNER_TEMP/contract.log"
           # A skip (no SDK_CONTRACT, no Node) would pass silently: require the run.
           grep -q -- '--- PASS: TestSDKContract/typescript' "$RUNNER_TEMP/contract.log"
+
+  # The required check: green only when both contract runs passed.
+  contract:
+    needs: contract-talk
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: both contract runs passed
+        env:
+          RESULT: ${{ needs.contract-talk.result }}
+        run: test "$RESULT" = success
