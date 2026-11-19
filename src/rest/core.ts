@@ -3,8 +3,9 @@
 import { API_BASE_PATH } from '../constants.ts'
 import { sleep, trimSlash, type Logger } from '../util.ts'
 import { VERSION } from '../version.ts'
-import { MaxBytesExceededError, NotFoundError, RestError } from './error.ts'
-import { Bucket, WindowLimiter, bucketKey, isMessagePost } from './limits.ts'
+import { MaxBytesExceededError, NotFoundError, RequestFailedError, RestError } from './error.ts'
+import { readBody } from './body.ts'
+import { Bucket, WindowLimiter, bucketKey, isMessagePost, redactPath, redactText } from './limits.ts'
 
 export interface RestOptions {
   /** The server, for example https://talk.example.org (a trailing slash is fine). */
@@ -31,6 +32,7 @@ export interface RestOptions {
 
 export interface RateLimitInfo {
   method: string
+  /** The route, with an interaction or webhook token replaced by `:token`. */
   path: string
   bucket: string
   /** Seconds the server asked to wait. */
@@ -100,20 +102,21 @@ export class RestCore {
   async request<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
     const key = bucketKey(method, path)
     const bucket = this.bucket(key)
+    const shown = redactPath(path)
     for (let attempt = 0; ; attempt++) {
       await this.acquire(bucket, opts.signal)
       const res = await this.send(method, path, opts)
       if (res.status === 429) {
-        const wait = await this.noteRateLimit(res, bucket, { method, path, key, attempt, maxRetries: this.maxRetries })
+        const wait = await this.noteRateLimit(res, bucket, { method, path: shown, key, attempt, maxRetries: this.maxRetries })
         if (wait.willRetry) continue
-        throw new RestError({ status: 429, method, path, body: wait.body, retryAfter: wait.retryAfter, global: wait.global })
+        throw new RestError({ status: 429, method, path: shown, body: wait.body, retryAfter: wait.retryAfter, global: wait.global })
       }
       if (method === 'GET' && RETRYABLE_GET.has(res.status) && attempt < this.maxRetries) {
         await res.body?.cancel()
         await sleep(500 * 2 ** attempt, opts.signal)
         continue
       }
-      return (await this.parse(res, method, path)) as T
+      return (await this.parse(res, method, shown)) as T
     }
   }
 
@@ -122,6 +125,7 @@ export class RestCore {
     const method = 'GET'
     const key = bucketKey(method, path)
     const bucket = this.bucket(key)
+    const shown = redactPath(path)
     for (let attempt = 0; ; attempt++) {
       await this.acquire(bucket, opts.signal)
       const timeout = AbortSignal.timeout(opts.timeoutMs ?? this.timeoutMs)
@@ -130,25 +134,17 @@ export class RestCore {
         Authorization: `Bot ${this.token}`,
         'User-Agent': this.userAgent,
       }
-      this.logger?.debug?.(`rest ${method} ${path}`)
-      const res = await this.fetchImpl(this.url(path, undefined), {
-        method,
-        headers,
-        signal,
-        redirect: 'manual',
-      })
+      this.logger?.debug?.(`rest ${method} ${shown}`)
+      const res = await this.fetch(method, path, { method, headers, signal, redirect: 'manual' })
       if (res.status === 429) {
-        const wait = await this.noteRateLimit(res, bucket, { method, path, key, attempt, maxRetries: this.maxRetries })
+        const wait = await this.noteRateLimit(res, bucket, { method, path: shown, key, attempt, maxRetries: this.maxRetries })
         if (wait.willRetry) continue
-        throw new RestError({ status: 429, method, path, body: wait.body, retryAfter: wait.retryAfter, global: wait.global })
-      }
-      if (res.status === 404) {
-        const body = await readBody(res)
-        throw new NotFoundError({ status: 404, method, path, body })
+        throw new RestError({ status: 429, method, path: shown, body: wait.body, retryAfter: wait.retryAfter, global: wait.global })
       }
       if (!res.ok) {
         const body = await readBody(res)
-        throw new RestError({ status: res.status, method, path, body })
+        if (res.status === 404) throw new NotFoundError({ status: 404, method, path: shown, body })
+        throw new RestError({ status: res.status, method, path: shown, body })
       }
       return processAttachmentStream(res, opts.maxBytes)
     }
@@ -196,8 +192,26 @@ export class RestCore {
     }
     const timeout = AbortSignal.timeout(this.timeoutMs)
     const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
-    this.logger?.debug?.(`rest ${method} ${path}`)
-    return this.fetchImpl(this.url(path, opts.query), { method, headers, body, signal })
+    this.logger?.debug?.(`rest ${method} ${redactPath(path)}`)
+    // The bot API answers without redirects; one becomes a RestError with its
+    // status instead of being followed, so the token goes to baseUrl only.
+    return this.fetch(method, path, { method, headers, body, signal, redirect: 'manual' }, opts.query)
+  }
+
+  /**
+   * fetch, with a failure that is not an abort or timeout rethrown as a
+   * RequestFailedError whose message leaves an interaction or webhook token
+   * out (a custom fetch may quote the URL in its message).
+   */
+  private async fetch(method: string, path: string, init: RequestInit, query?: RequestOptions['query']): Promise<Response> {
+    try {
+      return await this.fetchImpl(this.url(path, query), init)
+    } catch (err) {
+      if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) throw err
+      const shown = redactPath(path)
+      const message = redactText(err instanceof Error ? err.message : String(err), path)
+      throw new RequestFailedError({ method, path: shown, message, cause: shown === path ? err : undefined })
+    }
   }
 
   private url(path: string, query: RequestOptions['query']): string {
@@ -241,6 +255,7 @@ export class RestCore {
     return { retryAfter, global, body, willRetry }
   }
 
+  /** The body of res, or the RestError of an error answer; path is already redacted. */
   private async parse(res: Response, method: string, path: string): Promise<unknown> {
     const body = await readBody(res)
     if (!res.ok) {
@@ -300,19 +315,6 @@ function processAttachmentStream(res: Response, maxBytes?: number): DownloadedAt
     filename,
     stream: rawStream.pipeThrough(transform),
   }
-}
-
-async function readBody(res: Response): Promise<unknown> {
-  const text = await res.text()
-  if (text === '') return undefined
-  if ((res.headers.get('content-type') ?? '').includes('json')) {
-    try {
-      return JSON.parse(text)
-    } catch {
-      return text
-    }
-  }
-  return text
 }
 
 /** The longest 429 wait the client takes on its own, in seconds. */
