@@ -3,7 +3,9 @@
 All notable changes to `@mnema-xyz/bot-sdk`. Versions follow
 [semver](https://semver.org).
 
-## Unreleased
+## 3.5.0 (2026-11-20)
+
+Tested with Mnema Talk 3.2.0 and newer.
 
 - Behaviour change: `RestError.path` and `RateLimitInfo.path` (`onRateLimit`)
   now carry an interaction or webhook token as `:token`
