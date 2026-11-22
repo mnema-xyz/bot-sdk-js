@@ -100,8 +100,8 @@ new Client({ baseUrl, token, intents, presence?, logger?, rest?, gateway? })
   `ActivityType.Playing` (0), `Listening` (2), `Watching` (3), `Custom` (4),
   `Competing` (5).
 - `logger`: anything with `debug`, `info`, `warn`, `error` (for example `console`).
-- `rest`: `timeoutMs`, `maxRetries`, `localRateLimits`, `onRateLimit`, `fetch`.
-- `gateway`: `url` (a fixed address), `reconnect`, `resumeWindowMs`, `webSocketFactory`.
+- `rest`: `timeoutMs`, `maxRetries`, `localRateLimits`, `onRateLimit`, `fetch`, `userAgent`.
+- `gateway`: `url` (a fixed address), `reconnect`, `resumeWindowMs`, `webSocketFactory`, `properties` (IDENTIFY's).
 
 ### Events
 
@@ -137,7 +137,7 @@ on `error`.
 | `listMessages(channelId, { limit, before, after, around })` | `GET /channels/{id}/messages` |
 | `getMessage(channelId, messageId)` | `GET /channels/{id}/messages/{id}` |
 | `createMessage(channelId, { content, embeds, components, allowed_mentions, message_reference, parent_id, lifetime_seconds })` | `POST /channels/{id}/messages` |
-| `editMessage(channelId, messageId, { content?, components? })` | `PATCH /channels/{id}/messages/{id}` |
+| `editMessage(channelId, messageId, { content?, components?, allowed_mentions? })` | `PATCH /channels/{id}/messages/{id}` |
 | `deleteMessage(channelId, messageId)` | `DELETE /channels/{id}/messages/{id}` |
 | `addReaction(channelId, messageId, emoji)`, `removeReaction(...)` | `PUT`, `DELETE .../reactions/{emoji}/@me` |
 | `uploadFile(channelId, { file: Blob \| Buffer, name, content?, contentType?, allowed_mentions?, parent_id?, reply_to_id? })` | `POST /channels/{id}/upload` |
@@ -185,6 +185,8 @@ const { contentType, size, filename, stream } = await client.rest.downloadAttach
 ### Slash commands
 
 ```ts
+import { OptionType } from '@mnema-xyz/bot-sdk'
+
 await client.commands.set([            // PUT /commands: replaces them all
   { name: 'roll', description: 'Rolls a die',
     options: [{ name: 'sides', description: 'How many sides', type: OptionType.Integer, required: true }] },
@@ -232,7 +234,7 @@ checks whether the member has that permission (or Administrator). Answer within 
 | `reply({ content, embeds, components, allowed_mentions?, ephemeral? })` | 4 | all |
 | `deferReply({ ephemeral? })` | 5, then `editReply` | all |
 | `update({ content?, embeds?, components?, allowed_mentions? })` | 7 | components (and modal submits from one) |
-| `deferUpdate()` | 6 | components |
+| `deferUpdate()` | 6 | components (and modal submits from one) |
 | `showModal(modal(...))` | 9 | commands and components |
 | `editReply({ content?, embeds?, components?, allowed_mentions? })`, `deleteReply()` | `PATCH`, `DELETE .../messages/@original` | after the first answer |
 | `followUp({ content, embeds, components, allowed_mentions?, ephemeral? })` | `POST .../followups` (up to 5 responses in total) | after the first answer |
@@ -244,7 +246,8 @@ interaction sees it, and it is never stored. It belongs to `reply`,
 `allowed_mentions` works as on `createMessage`: without it an answer notifies
 the members it names, never `@all`, `@here` or a role. `i.user` is always
 set: the server sends the member with every interaction. `client.user.handle`
-(from READY) is the name members mention the bot by (`@bot-...`);
+(from READY) is the name members mention the bot by (taken from its name,
+for example `@dice`, or `@bot-...` when nothing usable is left);
 `client.user.username` is its display name.
 
 ## Components and modals
@@ -289,8 +292,10 @@ and the interaction answers. The full rules are in
   A `429` pauses its bucket (or, with `global: true`, every request) for
   `retry_after` seconds (the `Retry-After` header when the body has none) and
   sends the request again, up to `maxRetries` (3) times; then it throws a
-  `RestError` with `retryAfter` and `global`. `onRateLimit` is told about
-  every 429. Slow mode answers 429 the same way. Each attempt times out after
+  `RestError` with `retryAfter` and `global`. A 429 that asks for more than
+  60 seconds is not waited for: it throws at once. `onRateLimit` is told about
+  every 429. A `GET` that answers `502`, `503` or `504` is also sent again
+  (up to `maxRetries` times, after 0.5 s, 1 s, 2 s, ...). Slow mode answers 429 the same way. Each attempt times out after
   `timeoutMs` (15 s); pass `signal` to `request` to cancel.
 - **Gateway.** Frames from the bot are at most 4096 bytes (a bigger one throws
   `FrameTooLargeError`) and 120 a minute per connection: ordinary frames wait
